@@ -16,5 +16,5 @@ public class LogForwarder {
 }
 
 public protocol LogListener {
-    func log(message: String, level: Log.Level, file: String, line: Int, column: Int, funcName: String)
+    func log(object: Any?, level: Log.Level, file: String, line: Int, column: Int, funcName: String)
 }

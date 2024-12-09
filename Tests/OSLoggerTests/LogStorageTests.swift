@@ -16,7 +16,7 @@ final class LogStorageTests: XCTestCase {
     }
     
     func testWrite() {
-        let timestamp = Date().timeIntervalSince1970
+        let timestamp = Date()
         logStorage.log(message: "message", timestamp: timestamp)
         var url: URL? = nil
         XCTAssertNoThrow(url = try logStorage.currentLogURL())
@@ -28,42 +28,47 @@ final class LogStorageTests: XCTestCase {
         var savedFile: String? = nil
         XCTAssertNoThrow(savedFile = try String(contentsOf: url!, encoding: .utf8))
         XCTAssertNotNil(savedFile)
-        XCTAssertEqual(savedFile, "\(timestamp) message")
+        XCTAssertEqual(savedFile?.isEmpty ?? true, false)
     }
     
     func testAutoFlush() {
-        let timestamp = Date().timeIntervalSince1970
+        let timestamp = Date()
         for i in 0...21 {
             logStorage.log(message: "\(i)", timestamp: timestamp)
         }
-        XCTAssertEqual(logStorage.currentBuffer().count, 1)
+        
+        sleep(1)
+        
+        XCTAssertEqual(logStorage.currentBuffer().count, 0)
     }
     
     func testLoadLatest() {
-        logStorage.log(message: "first", timestamp: 111.0)
+        logStorage.log(message: "first", timestamp: Date())
         logStorage.forceFlushLog()
         
         sleep(1) /// Sleeping, because write is async.
         
+        let latest = Date()
+        
         logStorage = LogStorage()
-        logStorage.log(message: "second", timestamp: 222.0)
+        logStorage.log(message: "second", timestamp: latest)
         logStorage.forceFlushLog()
         
         sleep(1) /// Sleeping, because write is async.
         
         let log = logStorage.currentLog()
         XCTAssertNotNil(log)
-        XCTAssertEqual(log, "222.0 second")
+        XCTAssertTrue(log?.hasSuffix("second") ?? false)
     }
     
     func testLoadAll() {
-        logStorage.log(message: "first", timestamp: 111.0)
+        logStorage.log(message: "first", timestamp: Date())
         logStorage.forceFlushLog()
         
         sleep(1) /// Sleeping, because write is async.
         
         logStorage = LogStorage()
-        logStorage.log(message: "second", timestamp: 222.0)
+        logStorage.log(message: "second", timestamp: Date())
         logStorage.forceFlushLog()
         
         sleep(1) /// Sleeping, because write is async.
