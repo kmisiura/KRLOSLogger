@@ -95,7 +95,7 @@ public class Log {
     private static var debugLogLevel: Log.Level = .debug
     private static var releaseLogLevel: Log.Level = .verbose
     
-    static func writeLogs() {
+    public static func writeLogs() {
         logStorage.forceFlushLog()
     }
     
