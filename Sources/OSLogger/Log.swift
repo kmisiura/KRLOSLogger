@@ -12,7 +12,7 @@ public class Log {
         case error = 2
         case exception = 1
         
-        func event() -> String {
+        public func event() -> String {
             switch self {
                 case .debug:    return "[DEBUG]"
                 case .verbose:  return "[VERBOSE]"
@@ -23,7 +23,7 @@ public class Log {
             }
         }
         
-        func osLogType() -> OSLogType {
+        public func osLogType() -> OSLogType {
             switch self {
                 case .debug:    return OSLogType.debug
                 case .verbose:  return OSLogType.debug
