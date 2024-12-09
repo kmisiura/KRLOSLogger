@@ -5,8 +5,8 @@ public class Log {
     static var dateFormatter = ISO8601DateFormatter()
     
     public enum Level: Int, RawRepresentable, CaseIterable {
-        case verbose = 6
-        case debug = 5
+        case debug = 6
+        case verbose = 5
         case info = 4
         case warning = 3
         case error = 2
@@ -14,8 +14,8 @@ public class Log {
         
         func event() -> String {
             switch self {
-                case .verbose:  return "[VERBOSE]"
                 case .debug:    return "[DEBUG]"
+                case .verbose:  return "[VERBOSE]"
                 case .info:     return "[INFO]"
                 case .warning:  return "[WARNING]"
                 case .error:    return "[ERROR]"
@@ -25,8 +25,8 @@ public class Log {
         
         func osLogType() -> OSLogType {
             switch self {
-                case .verbose:  return OSLogType.debug
                 case .debug:    return OSLogType.debug
+                case .verbose:  return OSLogType.debug
                 case .info:     return OSLogType.info
                 case .warning:  return OSLogType.default
                 case .error:    return OSLogType.error
@@ -36,10 +36,10 @@ public class Log {
         
         public func isEnabled() -> Bool {
             switch self {
-                case .verbose:
-                    return Log.logLevel.rawValue >= Level.verbose.rawValue
                 case .debug:
                     return (Log.logLevel.rawValue >= Level.debug.rawValue)
+                case .verbose:
+                    return Log.logLevel.rawValue >= Level.verbose.rawValue
                 case .info:
                     return Log.logLevel.rawValue >= Level.info.rawValue
                 case .warning:
@@ -92,7 +92,7 @@ public class Log {
     
     private static var logStorage: LogStorage = LogStorage()
     
-    private static var debugLogLevel: Log.Level = .verbose
+    private static var debugLogLevel: Log.Level = .debug
     private static var releaseLogLevel: Log.Level = .verbose
     
     static func writeLogs() {
@@ -101,14 +101,14 @@ public class Log {
     
     // MARK: - Loging methods
     
+    public class func debug(_ object: Any? = nil, file: String = #file, line: Int = #line, column: Int = #column, funcName: String = #function) {
+        let nameAndPackage = sourceFileNameAndPackage(filePath: file)
+        log(object, package: nameAndPackage.package, file: nameAndPackage.fileName, line: line, column: column, funcName: funcName, level: .debug)
+    }
+    
     public class func verbose(_ object: Any? = nil, file: String = #file, line: Int = #line, column: Int = #column, funcName: String = #function) {
         let nameAndPackage = sourceFileNameAndPackage(filePath: file)
         log(object, package: nameAndPackage.package, file: nameAndPackage.fileName, line: line, column: column, funcName: funcName, level: .verbose)
-    }
-    
-    public class func debug(_ object: Any, file: String = #file, line: Int = #line, column: Int = #column, funcName: String = #function) {
-        let nameAndPackage = sourceFileNameAndPackage(filePath: file)
-        log(object, package: nameAndPackage.package, file: nameAndPackage.fileName, line: line, column: column, funcName: funcName, level: .debug)
     }
     
     public class func info(_ object: Any, file: String = #file, line: Int = #line, column: Int = #column, funcName: String = #function) {
@@ -160,14 +160,15 @@ public class Log {
                 message = "\(level.event()) \(file) \(line):\(column) \(funcName)"
             }
             os_log("%{public}s", log: logger, type: level.osLogType(), message)
-            if isLogStorageEnabled { logStorage.log(message: message, timestamp: Date().timeIntervalSince1970) }
-            LogForwarder.shared?.listeners.forEach { $0.log(message: message,
-                                                            level: level,
-                                                            file: file,
-                                                            line: line,
-                                                            column: column,
-                                                            funcName: funcName) }
+            if isLogStorageEnabled { logStorage.log(message: message, timestamp: Date()) }
         }
+        
+        LogForwarder.shared?.listeners.forEach { $0.log(object: object,
+                                                        level: level,
+                                                        file: file,
+                                                        line: line,
+                                                        column: column,
+                                                        funcName: funcName) }
     }
     
     private static func getSubsystemName() -> String {

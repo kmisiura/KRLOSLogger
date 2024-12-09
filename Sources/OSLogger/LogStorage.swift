@@ -8,24 +8,28 @@ class LogStorage {
         case writeError(reason: String)
     }
     
-    internal let workQueue = DispatchQueue(label: LogStorage.bundleId + ".LogStorage.BackGroundQueue", qos: .utility)
+    internal let workQueue = DispatchQueue(label: LogStorage.bundleId + ".LogStorage.BackgroundQueue", qos: .utility)
     internal let ioQueue = DispatchQueue(label: LogStorage.bundleId + ".LogStorage.IOQueue", qos: .utility)
     
     internal let currentLogName = "\(Date().timeIntervalSince1970).log"
+    
+    internal let dateFormatter = ISO8601DateFormatter()
     
     internal var flushTimer: Timer?
     
     private var logBuffer: [String] = []
     
     init() {
-        rotateLogs()
+        ioQueue.async {
+            self.rotateLogs()
+        }
     }
     
     deinit {
         self.forceFlushLog()
     }
     
-    func log(message: String, timestamp: Double) {
+    func log(message: String, timestamp: Date) {
         setupTimerIfNeeded()
         workQueue.async { self.appendLog(message: message, timestamp: timestamp) }
     }
@@ -70,17 +74,25 @@ class LogStorage {
     
     internal func setupTimerIfNeeded() {
         if flushTimer == nil {
-            flushTimer = Timer(timeInterval: 5.0, repeats: true, block: { _ in self.flushLog() })
+            flushTimer = Timer(timeInterval: 3.0, repeats: true, block: { _ in
+                self.workQueue.async {
+                    self.flushLog()
+                }
+            })
         }
     }
     
-    internal func appendLog(message: String, timestamp: Double) {
-        self.logBuffer.append("\(timestamp) " + message)
-        if self.logBuffer.count > 20 { flushLog() }
+    internal func appendLog(message: String, timestamp: Date) {
+        self.logBuffer.append(dateFormatter.string(from: timestamp) + " " + message)
+        if self.logBuffer.count > 20 {
+            workQueue.async {
+                self.flushLog()
+            }
+        }
     }
     
     internal func forceFlushLog() {
-        workQueue.async { [unowned self] in
+        workQueue.sync { [unowned self] in
             flushLog()
         }
     }
@@ -89,7 +101,7 @@ class LogStorage {
         guard !self.logBuffer.isEmpty else { return }
         let logs = self.logBuffer
         self.logBuffer.removeAll()
-        self.ioQueue.async {
+        self.ioQueue.sync {
             do {
                 let writeUrl = try self.currentLogURL()
                 try self.writeLog(logs, into: writeUrl)
